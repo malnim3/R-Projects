@@ -1,0 +1,278 @@
+#Project 2 STATS 382
+##By:Mashel Al-Nimer
+
+```{r, results: "hide"}
+hs_progress_report <- read.csv("C:/Users/haytr/Documents/STATS342/Project2/CPS_HighSchools_ProgressReport_2011-2012.csv")
+progress_report <- read.csv("C:/Users/haytr/Documents/STATS342/Project2/CPS_ProgressReport_2011-2012.csv")
+
+```
+
+*Task 1*
+We would like to conduct a significance test to address the concern that the population
+mean of students passing algebra for all schools is less than 50%. Before we begin, 
+we need to figure out if we are even able to conduct a significance test on this data since
+we concluded that this data is most likely not normally distributed in Project 1. First we will remove
+all rows with NA values.
+```{r}
+q1_data <- progress_report[!(is.na(progress_report$Students_Passing_Algebra)), ]
+```
+Since the size of our sample is 130 which is greater than 30, we can conduct the test.
+We will conduct a significance test at a 3% significance level. Our $H_0$ and $H_1$ are as follows:
+$$H_0: \mu = 50$$
+$$H_1: \mu < 50$$
+```{r}
+t.test(x = q1_data$Students_Passing_Algebra, conf.level = 0.97, mu = 50, alternative = "less")
+```
+Above we can see that the p-value we computed is 0.9575. Since $0.9575 \nless 0.03$, we will not reject $H_0$. This means that there is not enough evidence that supports the claim that the population mean of students passing algebra for all schools is less than 50%. Based on the test just conducted, we can also see that the confidence interval $(-Inf, 58.016)$ contains the value 50 supporting our conclusion even further.
+
+*Task 2*
+We would like to conduct a significance test to determine if the mean of the average PLAN scores from 2009 is different from the mean of the average PLAN scores from 2010. But we will need to remove and rows with NA values to prevent an inaccurate test.
+```{r}
+q2_data <- hs_progress_report[!(is.na(hs_progress_report$X10_Grade_Plan_2009)) & !(is.na(hs_progress_report$X10_Grade_Plan_2010)), ]
+```
+
+We will conduct a significance test at a 7% significance level. Our $H_0$ and $H_1$ are as follows:
+$$H_0: d = 0$$
+$$H_1: d \neq 0$$
+where $d = scores_{2010} - scores_{2009}$.
+```{r}
+t.test(q2_data$X10_Grade_Plan_2010 - q2_data$X10_Grade_Plan_2009, mu = 0, alternative = "two.sided", conf.level = 0.93)
+```
+Above we can see that the p-value of the test is $0.004793$. Since $0.004793 < 0.07$, we will reject $H_0$. This means that there is enough evidence that supports the claim that the mean of the average PLAN scores from 2009 is different from the mean of the average PLAN scores from 2010. Based on the test we have just conducted, we can see that 0 is not inside the interval $(-0.199, -0.045)$ supporting our conclusion even further.
+
+*Task 3*
+We would like to conduct a significance test to determine if the variables Graduation_Rate_Tier
+and Performance Policy Level for high schools are independent. Before conducting this test,
+we will remove any rows of the CPS_Performance_Policy_Level that are blank or have "Not Enough Information".
+```{r}
+q3_data <- hs_progress_report[!(hs_progress_report$CPS_Performance_Policy_Level == "Not Enough Data") & !(hs_progress_report$CPS_Performance_Policy_Level == " ") & !is.na(hs_progress_report$Graduation_Rate_Tier), ]
+```
+
+Now that we have those rows removed, we will conduct a significance test at a 4% significance level.
+Our $H_0$ and $H_1$ are as follows:
+$H_0:$ The variables are independent
+$H_1:$ The variables are not independent
+```{r}
+q3_table <- table(q3_data$CPS_Performance_Policy_Level, q3_data$Graduation_Rate_Tier)
+tmp <- chisq.test(q3_table)
+tmp
+```
+Above we can see that the p-value of the test is 0.001068. Since $0.001068 < 0.04$, we will reject $H_0$. This means that there is enough evidence that supports the claim that the variables Graduation_Rate_Tier and CPS_Performance_Policy_Level are not independent.
+
+*Task 4*
+We would like to conduct a one way ANOVA test to see if the mean teacher attendance varies by school type. We would like to conduct this test with a 1% significance level. Before we begin to conduct these tests, we need to figure out if the assumption of normality and equal variance is met. 
+Lets begin with the assumption of normality. We will remove all rows with the value of 0 then conduct the Shapiro-Wilk Test for High schools, Middle schools, and Elementary schools average teacher attendance. 
+```{r}
+q4_data <- progress_report[!(is.na(progress_report$Average_Teacher_Attence)) & !(progress_report$Average_Teacher_Attence == 0), ]
+
+hs_teacher_att <- q4_data$Average_Teacher_Attence[q4_data$Elementary_Middle_High_School == "HS"]
+ms_teacher_att <- q4_data$Average_Teacher_Attence[q4_data$Elementary_Middle_High_School == "MS"]
+es_teacher_att <- q4_data$Average_Teacher_Attence[q4_data$Elementary_Middle_High_School == "ES"]
+
+shapiro.test(hs_teacher_att)
+shapiro.test(ms_teacher_att)
+shapiro.test(es_teacher_att)
+```
+We can see that the data for High school teacher attendance has a p-value of $0.4954 \nless 0.01$,so this data is approximately normal. The data for Middle school teacher attendance has a p-value of $0.0506 \nless 0.01$, so this data is approximately normal. The data for Elementary school teacher attendance has a p-value of $ 0.001397 < 0.01$, so this data is not approximately normal. 
+Now we will conduct the Bartlett's Test to figure out if the assumption of equal variance is met. 
+```{r}
+bartlett.test(q4_data$Average_Teacher_Attence~q4_data$Elementary_Middle_High_School)
+```
+Based on the test conducted above, since the p-value is $0.01062 \nless 0.01$ so this data has equal variances.
+
+Although not all of the tests we conducted passed, we will continue with the test.
+Our $H_0$ and $H_1$ are as follows:
+$H_0: \mu_{HS} = \mu_{MS} = \mu_{ES}$
+$H_1: $At least one of the mean average of teacher attendance is not the same.
+```{r}
+anova(lm(q4_data$Average_Teacher_Attence~q4_data$Elementary_Middle_High_School))
+```
+Above we can see that the p-value of the test is 0.0272. Since $0.0272 \nless 0.01$ we will not reject $H_0$. This means that there is not enough evidence to support the claim that at least one of the mean averages of teacher attendance is not the same.
+
+*Task 5*
+We would like to conduct a one way ANOVA test to see if the mean student attendance varies by school type. We will conduct this test with a 1% significance level. Before we begin to conduct these tests, we need to figure out if the assumption of normality and equal variance is met. 
+Lets begin with the assumption of normality. We will remove all rows with the value of 0 or missing then conduct the Shapiro-Wilk Test for High schools, Middle schools, and Elementary schools average student attendance.
+```{r}
+q5_data <- progress_report[!(is.na(progress_report$Average_Student_Attence)) & !(progress_report$Average_Student_Attence == 0), ]
+
+hs_studnet_att <- q5_data$Average_Student_Attence[q5_data$Elementary_Middle_High_School == "HS"]
+ms_studnet_att <- q5_data$Average_Student_Attence[q5_data$Elementary_Middle_High_School == "MS"]
+es_studnet_att <- q5_data$Average_Student_Attence[q5_data$Elementary_Middle_High_School == "ES"]
+
+shapiro.test(hs_studnet_att)
+shapiro.test(ms_studnet_att)
+shapiro.test(es_studnet_att)
+```
+We can see that the data for High school student attendance has a p-value of $0.0004341 < 0.01$, so this data is not approximately normal. We can see that the data for Middle school student attendance has a p-value of $0.8502 \nlees  0.01$, so this data is approximately normal. We can see that the data for Elementary school student attendance has a p-value of $2.2e-16 <  0.01$, so this data is not approximately normal. 
+Now we will conduct the Bartlett's Test to figure out if the assumption of equal variance is met. 
+```{r}
+bartlett.test(q5_data$Average_Student_Attence~q5_data$Elementary_Middle_High_School)
+```
+Based on the test conducted above, since the p-value is $2.2e-16<0.01$ so this data does not have equal variances.
+
+Although not all of the tests we conducted passed, we will continue with the test.
+Our $H_0$ and $H_1$ are as follows:
+$H_0: \mu_{HS} = \mu_{MS} = \mu_{ES}$
+$H_1: $At least one of the mean average of student attendance is not the same.
+```{r}
+anova(lm(q5_data$Average_Student_Attence~q5_data$Elementary_Middle_High_School))
+```
+Above we can see that the p-value of the test is 2.2e-16. Since $2.2e-16 < 0.01$ we will reject $H_0$. This means that there is enough evidence to support the claim that at least one of the mean averages of student attendance is not the same.
+
+Since we see that there is an effect, we will compute the Tukey intervals of the data.
+```{r}
+TukeyHSD(aov(q5_data$Average_Student_Attence~q5_data$Elementary_Middle_High_School))
+```
+Since the High school and Middle school interval does not contain 0, we know that there is a difference between them in regards to the students attendance. We also see that Middle school and High school interval does not contain 0, we know that there is a difference between them as well.
+
+*Task 6*
+We would like to conduct a 2-way ANOVA test to test the effects of the variables CPS_Performance_Policy_Status and CPS_Performance_Policy_Level on the variable Rate_of_Misconducts. Before we do this, we need to remove any data in CPS_Performance_Policy_Status that is blank or contains the value "Not Applicable" and any data in the CPS_Performance_Policy_Level that is blank or contains the value "Not Enough Data".
+```{r}
+q6_data <- progress_report[!(progress_report$CPS_Performance_Policy_Status == "") & !(progress_report$CPS_Performance_Policy_Status == "Not Applicable") & !(progress_report$CPS_Performance_Policy_Level == "") & !(progress_report$CPS_Performance_Policy_Level == "Not Enough Data"), ]
+```
+Before we begin to conduct these tests, we need to figure out if the assumption of normality and equal variance is met. We will conduct the Shapiro-Wilk Test to check the assumption of normality.
+```{r}
+rm_stat_p <- q6_data$Rate_of_Misconducts[q6_data$CPS_Performance_Policy_Status == "Probation"]
+rm_stat_np <- q6_data$Rate_of_Misconducts[q6_data$CPS_Performance_Policy_Status == "Not on Probation"]
+
+rm_lvl_1 <- q6_data$Rate_of_Misconducts[q6_data$CPS_Performance_Policy_Level == "Level 1"]
+rm_lvl_2 <- q6_data$Rate_of_Misconducts[q6_data$CPS_Performance_Policy_Level == "Level 2"]
+rm_lvl_3 <- q6_data$Rate_of_Misconducts[q6_data$CPS_Performance_Policy_Level == "Level 3"]
+
+shapiro.test(rm_stat_p)
+shapiro.test(rm_stat_np)
+
+shapiro.test(rm_lvl_1)
+shapiro.test(rm_lvl_2)
+shapiro.test(rm_lvl_3)
+```
+We can see that the data of misconduct for Schools with the status of "Probation" has a p-value of $2.2e-16 < 0.09$, so this data is not approximately normal. We can see that the data of misconduct for Schools with the status of "Not on Probation" has a p-value of $2.2e-16 < 0.09$, so this data is not approximately normal.
+We can see that the data of misconduct for Schools with the level of 1 has a p-value of $2.2e-16 < 0.09$, so this data is not approximately normal. We can see that the data of misconduct for Schools with the level of 2 has a p-value of $2.2e-16 < 0.09$, so this data is not approximately normal. We can see that the data of misconduct for Schools with the level of 3 has a p-value of $3.319e-16 < 0.09$, so this data is not approximately normal.
+Now we will conduct the Bartlett's Test to figure out if the assumption of equal variance is met. 
+```{r}
+bartlett.test(q6_data$Rate_of_Misconducts~q6_data$CPS_Performance_Policy_Status)
+bartlett.test(q6_data$Rate_of_Misconducts~q6_data$CPS_Performance_Policy_Level)
+```
+Based on the tests conducted above, since the p-value of both tests is $2.2e-16<0.09$, this data does not have equal variances.
+
+Although not all of the tests we conducted passed, we will continue with the test.
+Our $H_0$ and $H_1$ are as follows:
+$H_0: \mu_{lvl1} = \mu_{lvl2} = \mu_{lvl3} = \mu_{probation} = \mu_{no probation}$
+$H_1: $At least one of the mean average of misconduct is not the same.
+```{r}
+anova(lm(Rate_of_Misconducts~ CPS_Performance_Policy_Status*CPS_Performance_Policy_Level,data = q6_data))
+```
+Above we can see that the p-value of the test is 2.2e-16. Since $2.2e-16 < 0.01$ we will reject $H_0$. This means that there is enough evidence to support the claim that at least one of the mean averages of misconduct is not the same.
+
+*Task 7*
+We would like to conduct a simple linear regression model to predict the college enrollment rate using the parents engagement score. We will begin by removing data that contains an "NA" value. Once we do that, we will create a new data set with the values of College_Enrollment_Rate and Parent_Engagement_Score.
+```{r}
+q7_data_no_na <- hs_progress_report[!(is.na(hs_progress_report$Parent_Engagement_Score)) & !(is.na(hs_progress_report$College_Enrollment_Rate)), ]
+q7_data <- data.frame(Parent_Engagement_Score = q7_data_no_na$Parent_Engagement_Score, College_Enrollment_Rate = q7_data_no_na$College_Enrollment_Rate)
+```
+Lets begin by looking at a scatter plot of the data.
+```{r}
+plot(y = q7_data$College_Enrollment_Rate, x = q7_data$Parent_Engagement_Score, ylab = "College Enrollment Rate", xlab = "Parent Engagment", main = "Scatter Plot of College Enrollment Rate vs. Parent Engagement")
+```
+Now we will conduct the Pearson correlation coefficient to get our r value.
+```{r}
+cor(q7_data$Parent_Engagement_Score, q7_data$College_Enrollment_Rate)
+```
+Now lets check the assumptions for linear regression. These assumptions are linearity, normality, and equal variance. 
+We will begin by testing linearity. To do this we will be plotting the residual versus the x-value which in this case is Parent_Engagement_Score.
+
+```{r}
+lm_ <- lm(College_Enrollment_Rate~Parent_Engagement_Score, data = q7_data) 
+plot(x = q7_data$Parent_Engagement_Score, y = lm_$residuals , ylab = "Residual", xlab = "Parent Engagement")
+abline(h = 0, lty = 2)
+```
+It seems like the points are spread out around the graph so the linearity assumption is met.
+
+Now lets check for normality. We will do so with the Shapiro-Wilk normality test and we will use the significance level of 4%.
+```{r}
+shapiro.test(lm_$residuals)
+```
+Based on the Shapiro-Wilk normality test, we can see that the p-value is $0.5765$. Since $0.5765 \nless 0.04$, the normality assumption is met.
+
+We will now check for equal variance. We will do so by plotting the residuals and the fitted values.
+```{r}
+plot(x = lm_$fitted.values, y = lm_$residuals, xlab = "Fitted Values", ylab = "Residuals", main ="Scatterplot of Residuals vs Fitted Values")
+```
+In the plot above, we can see that the points are randomly scattered so the equal variance assumption is met.
+
+Now that the assumptions are met, we can begin our test.
+Our $H_0$ and $H_1$ are as follows:
+$$H_0: \beta = 0$$
+$$H_1: \beta \neq 0$$
+We will create an summary table to get our p-value.
+```{r}
+summary(lm_)
+```
+Based on the results of our summary table above, we get the equation of the redression line to be $CollegeEnrollment = -16.1537 + 1.5293 * Parent Engagement$.
+We can also see that the p-value of the test is 0.02228. Since $0.02228 < 0.04$ we will reject $H_0$. This means that there is enough evidence that there is a significant linear association between College Enrollment and Parent engagement.
+
+There is enough evidence that the Parent engagement of a high school student explains some of the variability in the College Enrollment of a high school student.
+
+Now we can see from out summary that the $R^2$ value is 0.1851. This means that 18.51% of variability in College Enrollment is explained by Parent engagement.
+
+*Task 8*
+We would like to create a multiple linear regression model to predict the college enrollment rate using family involvment score and the average ACT score of 11th graders. We will begin by removing data that contains an "NA" value. Once we do that, we will create a new data set with the values of College_Enrollment_Rate, Family_Engagement_Score, and X11_Grade_Average_ACT_2011.
+```{r}
+q8_data_no_na <- hs_progress_report[!(is.na(hs_progress_report$Family_Involvement_Score)) & !(is.na(hs_progress_report$X11_Grade_Average_ACT_2011)) & !(is.na(hs_progress_report$College_Enrollment_Rate)), ]
+q8_data <- data.frame(Family_Involement_Score = q8_data_no_na$Family_Involvement_Score, X11_Grade_Average_ACT_2011 = q8_data_no_na$X11_Grade_Average_ACT_2011, College_Enrollment_Rate = q8_data_no_na$College_Enrollment_Rate)
+```
+Before we begin our test, we need to check the assumptions of Linearity, Normality, and Equal Variance. 
+We will begin by checking the assumption of Linearity.
+```{r}
+lm_ <- lm(q8_data$College_Enrollment_Rate~q8_data$Family_Involement_Score+q8_data$X11_Grade_Average_ACT_2011)
+
+plot(x = q8_data$Family_Involement_Score, y = lm_$residuals, xlab = "Family Involement", ylab = "Residuals")
+plot(x = q8_data$X11_Grade_Average_ACT_2011, y = lm_$residuals, xlab = "11th Grade Average ACT", ylab = "Residuals")
+```
+It seems like the points are spread out around the graph so the linearity assumption is met.
+
+Now lets check for normality. We will do so with the Shapiro-Wilk normality test and we will use the significance level of 5%.
+```{r}
+shapiro.test(lm_$residuals)
+```
+Based on the Shapiro-Wilk normality test, we can see that the p-value is $0.09501$. Since $0.09501 \nless 0.05$, the normality assumption is met.
+
+We will now check for equal variance. We will do so by plotting the residuals and the fitted values.
+```{r}
+plot(x = lm_$fitted.values, y = lm_$residuals, xlab = "Fitted Values", ylab = "Residuals", main ="Scatterplot of Residuals vs Fitted Values")
+```
+In the plot above, we can see that the points are randomly scattered so the equal variance assumption is met.
+
+Now that the assumptions are met, we can begin our test.
+Our $H_0$ and $H_1$ are as follows:
+$H_0: $ variables do not explain some of the variation 
+$H_1: $ at least 1 variable explains some of the variation
+We will create an summary table to get our p-value.
+```{r}
+summary(lm_)
+```
+We can see that the p-value of the test is 1.116e-08. Since $1.116e-08 < 0.05$ we will reject $H_0$. This means that there is enough evidence that there is a significant linear association between College Enrollment and family involvement and 11th grade average ACT scores.
+
+There is enough evidence that the family involvement and 11th grade average ACT scores of a high school student explains some of the variability in the College Enrollment of a high school student.
+
+Now we can see from out summary that the $R^2$ value is 0.609. This means that 60.9% of variability in College Enrollment is explained by family involvement and/or 11th grade average ACT scores.
+
+Now that we have determined that the variables family involvement and 11th grade average ACT scores explains some of the variation, we need to figure out which variable(s) explains that variation. To do this we will conduct a hypothesis test on both variables. Our first test will be on the variable of family involvement. Our $H_0$ and $H_1$ values are as follows:
+$$H_0: \beta = 0$$
+$$H_1: \beta \neq 0$$
+```{r}
+lm_fi <- lm(q8_data$College_Enrollment_Rate~q8_data$Family_Involement_Score)
+
+summary(lm_fi)
+```
+We can see that the p-value of the test is 0.01831. Since $0.01831 < 0.05$ we will reject $H_0$. This means that there is enough evidence that family involvement is important in explaining some of the variability in College Enrollment.
+
+Now we will conduct a hypothesis test on the variable 11th grade average ACT scores. Our $H_0$ and $H_1$ values are as follows:
+$$H_0: \beta = 0$$
+$$H_1: \beta \neq 0$$
+```{r}
+lm_ACT <- lm(q8_data$College_Enrollment_Rate~q8_data$X11_Grade_Average_ACT_2011)
+
+summary(lm_ACT)
+```
+We can see that the p-value of the test is 1.108e-09. Since $1.108e-09 < 0.05$ we will reject $H_0$. This means that there is enough evidence that 11 Grade Average ACT scores is important in explaining some of the variablitily in College Enrollment.
